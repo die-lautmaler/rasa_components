@@ -1,0 +1,46 @@
+language: de
+# pipeline configuration
+# for detailed documentation : https://rasa.com/docs/rasa/tuning-your-model
+pipeline:
+  # Pretrained Embeddings
+  - name: SpacyNLP
+    model: "de_dep_news_trf"
+    case_sensitive: False
+#  - name: rasa_nlu_examples.meta.StopWordRemover
+#    "path": data/stopwords_de.txt
+  # Tokenizer
+  - name: SpacyTokenizer
+  # Featurizers
+  - name: SpacyTrfFeaturizer
+  - name: RegexFeaturizer
+    case_sensitive: False
+  - name: LexicalSyntacticFeaturizer
+    features: [
+      ["BOS", "digit", "prefix2"],
+      ["BOS", "EOS", "digit", "prefix2", "suffix2", "pos"],
+      ["EOS", "digit", "prefix2"],
+    ]
+  - name: CountVectorsFeaturizer
+    min_ngram: 1
+    max_ngram: 3
+    OOV_token: oovtoken
+  - name: CountVectorsFeaturizer
+    analyzer: char_wb
+    min_ngram: 3
+    max_ngram: 6
+  - name: DucklingEntityExtractor
+    # url of the running duckling server
+    url: "http://botify-team-duckling-svc:8000"
+    # dimensions to extract
+    dimensions: [ "time", "duration", "amount-of-money", "phone-number" ]
+    locale: "de_DE"
+    # if not set the default timezone of Duckling is going to be used
+    # needed to calculate dates from relative expressions like "tomorrow"
+    timezone: "Europe/Berlin"
+    timeout: 2
+  - name: DIETClassifier
+    epochs: 200
+  - name: EntitySynonymMapper
+  - name: FallbackClassifier
+    threshold: 0.65
+    ambiguity_threshold: 0.05
