@@ -11,7 +11,7 @@ pipeline:
   # Tokenizer
   - name: SpacyTokenizer
   # Featurizers
-  - name: SpacyTrfFeaturizer
+  - name: strff.spacy_trf_featurizer.SpacyTrfFeaturizer
   - name: RegexFeaturizer
     case_sensitive: False
   - name: LexicalSyntacticFeaturizer
