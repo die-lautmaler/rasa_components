@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='laut_components',
+    name='lautcomponents',
     version='0.5.0',
     author='lautmalers',
     author_email='info@die-lautmaler.com',
@@ -16,6 +16,6 @@ setuptools.setup(
         "Bug Tracker": "https://github.com/die-lautmaler/rasa_components/issues"
     },
     # license='MIT',
-    packages=['laut_components'],
+    packages=['lautcomponents'],
     install_requires=['rasa>=2.8.0,<3.0.0'],
 )
