@@ -17,5 +17,5 @@ setuptools.setup(
     },
     # license='MIT',
     packages=['laut_components'],
-    install_requires=[],
+    install_requires=['rasa>=2.8.0,<3.0.0'],
 )
