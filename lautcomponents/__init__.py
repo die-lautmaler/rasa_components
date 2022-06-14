@@ -1,1 +1,1 @@
-from stringmatchclassifier import StringMatchClassifier
+from .stringmatchclassifier import StringMatchClassifier
