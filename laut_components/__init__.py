@@ -1,1 +1,1 @@
-from stringmatchclassifier import KeywordIntentClassifierLaut
+from stringmatchclassifier import StringMatchClassifier
