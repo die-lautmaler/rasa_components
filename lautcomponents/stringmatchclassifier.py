@@ -75,6 +75,7 @@ class StringMatchClassifier(IntentClassifier):
                 f"Removed '{keyword}' from the list of keywords because it was "
                 "a keyword for more than one intent."
             )
+
     # TODO: remove
     # def _validate_keyword_map(self) -> None:
     #     re_flag = 0 if self.case_sensitive else re.IGNORECASE
@@ -112,8 +113,13 @@ class StringMatchClassifier(IntentClassifier):
             return td_file.readlines()
 
     def process(self, message: Message, **kwargs: Any) -> None:
-        """Set the message intent and add it to the output is it exists."""
-        intent_name = self._map_keyword_to_intent(message.get(TEXT))
+        """Set the message intent and add it to the output if it exists."""
+        # only messages with less than 3 tokens are contained
+        if len(message.get(TEXT).split(' ')) > 2:
+            return
+
+        # intent_name = self._map_keyword_to_intent(message.get(TEXT))
+        intent_name = self.intent_keyword_map[message.get(TEXT).strip()]
 
         confidence = 0.0 if intent_name is None else 1.0
         intent = {"name": intent_name, "confidence": confidence}
