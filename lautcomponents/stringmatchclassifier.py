@@ -1,9 +1,9 @@
 import os
 import logging
-import re
 from typing import Any, Dict, Optional, Text
 
 from rasa.shared.constants import DOCS_URL_COMPONENTS
+from rasa.shared.nlu.training_data.formats.rasa_yaml import RasaYAMLReader
 from rasa.nlu import utils
 from rasa.nlu.classifiers.classifier import IntentClassifier
 from rasa.shared.nlu.constants import INTENT, TEXT
@@ -27,7 +27,7 @@ class StringMatchClassifier(IntentClassifier):
     classification result is not altered on no match
     """
 
-    defaults = {"case_sensitive": False, "train_data": "./data/nlu_kw_classify.csv"}
+    defaults = {"case_sensitive": False, "max_token": 2, "train_data": None}
 
     def __init__(
             self,
@@ -39,86 +39,83 @@ class StringMatchClassifier(IntentClassifier):
 
         self.case_sensitive = self.component_config.get("case_sensitive")
         self.train_data_file = self.component_config.get("train_data")
+        self.max_token = self.component_config.get("max_token")
         self.intent_keyword_map = intent_keyword_map or {}
 
-    def train(
-            self,
-            training_data: TrainingData,
-            config: Optional[RasaNLUModelConfig] = None,
-            **kwargs: Any,
-    ) -> None:
-        # TODO: check if extra train data file is given. take normal train data if not
-        td_lines = self._load_train_data()
+    def train(self, training_data: TrainingData, config: Optional[RasaNLUModelConfig] = None, **kwargs: Any, ) -> None:
+        if self.train_data_file:
+            self._load_train_data()
+        else:
+            self._compute_intent_map(training_data)
+
+        logger.info("mapped {} utterances".format(len(self.intent_keyword_map.keys())))
+
+    def _load_train_data(self):
+        logger.info("reading train data file {}".format(self.train_data_file))
+        train_data = RasaYAMLReader().read(self.train_data_file)
+
         duplicate_examples = set()
-        for exline in td_lines:
-            ex = exline.split(',')
-            text = ex[0].strip()
-            intent = ex[1].strip()
-            if (
-                    text in self.intent_keyword_map.keys()
-                    and intent != self.intent_keyword_map[text]
-            ):
+        for ex in train_data.intent_examples:
+            text = ex.get(TEXT)
+            # print(text)
+            intent = ex.get(INTENT)
+            # print(ex.get("text_spacy_doc"))
+
+            if text in self.intent_keyword_map.keys() and intent != self.intent_keyword_map[text]:
                 duplicate_examples.add(text)
                 rasa.shared.utils.io.raise_warning(
-                    f"Keyword '{text}' is a keyword to trigger intent "
+                    f"text '{text}' is a trigger for intent "
                     f"'{self.intent_keyword_map[text]}' and also "
                     f"intent '{intent}', it will be removed "
                     f"from the list of keywords for both of them. "
                     f"Remove (one of) the duplicates from the training data.",
-                    docs=DOCS_URL_COMPONENTS + "#keyword-intent-classifier",
+                    docs=DOCS_URL_COMPONENTS + "#string-match-classifier",
                 )
             else:
                 self.intent_keyword_map[text] = intent
-        for keyword in duplicate_examples:
-            self.intent_keyword_map.pop(keyword)
+
+        for utterance in duplicate_examples:
+            self.intent_keyword_map.pop(utterance)
             logger.debug(
-                f"Removed '{keyword}' from the list of keywords because it was "
-                "a keyword for more than one intent."
+                f"Removed '{utterance}' from the list of utterances because it was "
+                "an utterance for more than one intent."
             )
 
-    # TODO: remove
-    # def _validate_keyword_map(self) -> None:
-    #     re_flag = 0 if self.case_sensitive else re.IGNORECASE
-    #
-    #     ambiguous_mappings = []
-    #     for keyword1, intent1 in self.intent_keyword_map.items():
-    #         for keyword2, intent2 in self.intent_keyword_map.items():
-    #             if (
-    #                     re.search(r"\b" + keyword1 + r"\b", keyword2, flags=re_flag)
-    #                     and intent1 != intent2
-    #             ):
-    #                 ambiguous_mappings.append((intent1, keyword1))
-    #                 rasa.shared.utils.io.raise_warning(
-    #                     f"Keyword '{keyword1}' is a keyword of intent '{intent1}', "
-    #                     f"but also a substring of '{keyword2}', which is a "
-    #                     f"keyword of intent '{intent2}."
-    #                     f" '{keyword1}' will be removed from the list of keywords.\n"
-    #                     f"Remove (one of) the conflicting keywords from the"
-    #                     f" training data.",
-    #                     docs=DOCS_URL_COMPONENTS + "#keyword-intent-classifier",
-    #                 )
-    #     for intent, keyword in ambiguous_mappings:
-    #         self.intent_keyword_map.pop(keyword)
-    #         logger.debug(
-    #             f"Removed keyword '{keyword}' from intent "
-    #             f"'{intent}' because it matched a "
-    #             f"keyword of another intent."
-    #         )
+    def _compute_intent_map(self, train_data: TrainingData):
+        logger.info('mapping utterances with max {} tokens'.format(self.max_token))
 
-    def _load_train_data(self):
-        """load string intent mappings from a yaml file given in train_data option of the component"""
-        # TODO: adapt for yaml file read in
-        print('load train data from {}'.format(self.train_data_file))
-        with open(self.train_data_file, 'r', encoding='utf8') as td_file:
-            return td_file.readlines()
+        duplicate_examples = set()
+        for ex in train_data.intent_examples:
+            text = ex.get(TEXT)
+            intent = ex.get(INTENT)
+
+            if len(ex.get("text_tokens")) <= self.max_token:
+                if text in self.intent_keyword_map.keys() and intent != self.intent_keyword_map[text]:
+                    duplicate_examples.add(text)
+                    rasa.shared.utils.io.raise_warning(
+                        f"text '{text}' is a trigger for intent "
+                        f"'{self.intent_keyword_map[text]}' and also "
+                        f"intent '{intent}', it will be removed "
+                        f"from the list of keywords for both of them. "
+                        f"Remove (one of) the duplicates from the training data.",
+                        docs=DOCS_URL_COMPONENTS + "#string-match-classifier",
+                    )
+                else:
+                    self.intent_keyword_map[text] = intent
+
+        for utterance in duplicate_examples:
+            self.intent_keyword_map.pop(utterance)
+            logger.debug(
+                f"Removed '{utterance}' from the list of utterances because it was "
+                "an utterance for more than one intent."
+            )
 
     def process(self, message: Message, **kwargs: Any) -> None:
         """Set the message intent and add it to the output if it exists."""
-        # only messages with less than 3 tokens are contained
-        if len(message.get(TEXT).split(' ')) > 2:
+
+        if len(message.get("text_tokens")) > self.max_token:
             return
 
-        # intent_name = self._map_keyword_to_intent(message.get(TEXT))
         intent_name = self.intent_keyword_map[message.get(TEXT).strip()]
 
         confidence = 0.0 if intent_name is None else 1.0
@@ -128,20 +125,20 @@ class StringMatchClassifier(IntentClassifier):
         if intent_name is not None:
             message.set(INTENT, intent, add_to_output=True)
 
-    def _map_keyword_to_intent(self, text: Text) -> Optional[Text]:
-        re_flag = 0 if self.case_sensitive else re.IGNORECASE
-
-        for keyword, intent in self.intent_keyword_map.items():
-            # if re.search(r"\b" + keyword + r"\b", text, flags=re_flag):
-            if re.match(r"^" + keyword + r"$", text, flags=re_flag):
-                logger.debug(
-                    f"KeywordClassifier matched keyword '{keyword}' to"
-                    f" intent '{intent}'."
-                )
-                return intent
-
-        logger.debug("KeywordClassifier did not find any keywords in the message.")
-        return None
+    # def _map_keyword_to_intent(self, text: Text) -> Optional[Text]:
+    #     re_flag = 0 if self.case_sensitive else re.IGNORECASE
+    #
+    #     for keyword, intent in self.intent_keyword_map.items():
+    #         # if re.search(r"\b" + keyword + r"\b", text, flags=re_flag):
+    #         if re.match(r"^" + keyword + r"$", text, flags=re_flag):
+    #             logger.debug(
+    #                 f"KeywordClassifier matched keyword '{keyword}' to"
+    #                 f" intent '{intent}'."
+    #             )
+    #             return intent
+    #
+    #     logger.debug("KeywordClassifier did not find any keywords in the message.")
+    #     return None
 
     def persist(self, file_name: Text, model_dir: Text) -> Dict[Text, Any]:
         """Persist this model into the passed directory.
