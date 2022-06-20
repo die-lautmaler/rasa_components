@@ -1,17 +1,17 @@
 # lautmaler rasa components
-a package for some rasa pipeline component implementations to be shared ammong projects
-the main branch targets rasa 2.8.x
+A package for some rasa pipeline component implementations to be shared among projects  
+The main branch targets rasa 2.8.x
 
 # StringMatchIntentClassifier
 A simple string matching intent classifier that can take its own set of training data.
 The rasa keyword intent classifier served as a template.
+https://github.com/RasaHQ/rasa/blob/2.8.x/rasa/nlu/classifiers/keyword_intent_classifier.py  
+
 Differences:
 1. It does not match substrings of the user message, only full match to one of the train examples to yield a intent classification 
 2. The classification result is only overwritten on successful match, otherwise it stays untouched
 
-Is an intent classifier that map exact string matchs to intents. The Rasa Keyword Intent classifier served as code Template, though the way it works has been adapted.
-
-The need of better handling very short utterances up to 2 tokens long lead to the idea of using a simple string match approach for these utterances.
+The need of better handling very short utterances up to 2 tokens long has lead to the idea of using a simple string match approach for these utterances.
 
 ### Configuration
 
@@ -29,7 +29,7 @@ It will use all utterances in the file, i.e. `max_token` is ignored when `train_
 
 ### Classification Behavior
 
-The training step just builts a simple map from utterances to intents.
+The training step just builds a simple map from utterances to intents.
 
 At classification time, the token count of the incoming utterance is computed  to avoid unecessary lookups in the map.
 
