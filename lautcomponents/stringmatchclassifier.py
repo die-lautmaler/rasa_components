@@ -113,32 +113,11 @@ class StringMatchClassifier(IntentClassifier):
     def process(self, message: Message, **kwargs: Any) -> None:
         """Set the message intent and add it to the output if it exists."""
 
-        if len(message.get("text_tokens")) > self.max_token:
-            return
-
-        intent_name = self.intent_keyword_map[message.get(TEXT).strip()]
-
-        confidence = 0.0 if intent_name is None else 1.0
-        intent = {"name": intent_name, "confidence": confidence}
-
-        # overwrite classification only if match was found
-        if intent_name is not None:
-            message.set(INTENT, intent, add_to_output=True)
-
-    # def _map_keyword_to_intent(self, text: Text) -> Optional[Text]:
-    #     re_flag = 0 if self.case_sensitive else re.IGNORECASE
-    #
-    #     for keyword, intent in self.intent_keyword_map.items():
-    #         # if re.search(r"\b" + keyword + r"\b", text, flags=re_flag):
-    #         if re.match(r"^" + keyword + r"$", text, flags=re_flag):
-    #             logger.debug(
-    #                 f"KeywordClassifier matched keyword '{keyword}' to"
-    #                 f" intent '{intent}'."
-    #             )
-    #             return intent
-    #
-    #     logger.debug("KeywordClassifier did not find any keywords in the message.")
-    #     return None
+        if len(message.get("text_tokens")) <= self.max_token:
+            if message.get(TEXT).strip() in self.intent_keyword_map:
+                intent_name = self.intent_keyword_map[message.get(TEXT).strip()]
+                intent = {"name": intent_name, "confidence": 1.0}
+                message.set(INTENT, intent, add_to_output=True)
 
     def persist(self, file_name: Text, model_dir: Text) -> Dict[Text, Any]:
         """Persist this model into the passed directory.
