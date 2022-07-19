@@ -1,22 +1,30 @@
-import os
+from __future__ import annotations
 import logging
-from typing import Any, Dict, Optional, Text
+from typing import Any, Dict, Optional, Text, List
 
+
+from rasa.engine.graph import GraphComponent, ExecutionContext
+from rasa.engine.recipes.default_recipe import DefaultV1Recipe
+from rasa.engine.storage.resource import Resource
+from rasa.engine.storage.storage import ModelStorage
 from rasa.shared.constants import DOCS_URL_COMPONENTS
-from rasa.shared.nlu.training_data.formats.rasa_yaml import RasaYAMLReader
-from rasa.nlu import utils
 from rasa.nlu.classifiers.classifier import IntentClassifier
 from rasa.shared.nlu.constants import INTENT, TEXT
 import rasa.shared.utils.io
-from rasa.nlu.config import RasaNLUModelConfig
 from rasa.shared.nlu.training_data.training_data import TrainingData
 from rasa.shared.nlu.training_data.message import Message
-from rasa.nlu.model import Metadata
+
+###################################
+from rasa.shared.constants import DOCS_URL_COMPONENTS
+from rasa.shared.nlu.training_data.formats.rasa_yaml import RasaYAMLReader
+import rasa.shared.utils.io
 
 logger = logging.getLogger(__name__)
 
-
-class StringMatchClassifier(IntentClassifier):
+@DefaultV1Recipe.register(
+    DefaultV1Recipe.ComponentType.INTENT_CLASSIFIER, is_trainable=True
+)
+class StringMatchClassifier(GraphComponent, IntentClassifier):
     """
     Template taken from
     https://github.com/RasaHQ/rasa/blob/2.8.x/rasa/nlu/classifiers/keyword_intent_classifier.py
@@ -29,26 +37,51 @@ class StringMatchClassifier(IntentClassifier):
 
     defaults = {"case_sensitive": False, "max_token": 2, "train_data": None}
 
+    @staticmethod
+    def get_default_config() -> Dict[Text, Any]:
+        """The component's default config (see parent class for full docstring)."""
+        return {"case_sensitive": False, "max_token": 2, "train_data": None}
+
     def __init__(
             self,
-            component_config: Optional[Dict[Text, Any]] = None,
+            config: Dict[Text, Any],
+            model_storage: ModelStorage,
+            resource: Resource,
+            execution_context: ExecutionContext,
             intent_keyword_map: Optional[Dict] = None,
     ) -> None:
 
-        super(StringMatchClassifier, self).__init__(component_config)
+        # super(StringMatchClassifier, self).__init__(config)
+        self.component_config = config
+        self._model_storage = model_storage
+        self._resource = resource
+        self._execution_context = execution_context
 
         self.case_sensitive = self.component_config.get("case_sensitive")
         self.train_data_file = self.component_config.get("train_data")
         self.max_token = self.component_config.get("max_token")
         self.intent_keyword_map = intent_keyword_map or {}
 
-    def train(self, training_data: TrainingData, config: Optional[RasaNLUModelConfig] = None, **kwargs: Any, ) -> None:
+    @classmethod
+    def create(
+            cls,
+            config: Dict[Text, Any],
+            model_storage: ModelStorage,
+            resource: Resource,
+            execution_context: ExecutionContext,
+    ) -> StringMatchClassifier:
+        """Creates a new untrained component (see parent class for full docstring)."""
+        return cls(config, model_storage, resource, execution_context)
+
+    def train(self, training_data: TrainingData) -> Resource:
         if self.train_data_file:
             self._load_train_data()
         else:
             self._compute_intent_map(training_data)
 
         logger.info("mapped {} utterances".format(len(self.intent_keyword_map.keys())))
+        self.persist()
+        return self._resource
 
     def _load_train_data(self):
         logger.info("reading train data file {}".format(self.train_data_file))
@@ -110,50 +143,50 @@ class StringMatchClassifier(IntentClassifier):
                 "an utterance for more than one intent."
             )
 
-    def process(self, message: Message, **kwargs: Any) -> None:
+    def process(self, messages: List[Message]) -> List[Message]:
         """Set the message intent and add it to the output if it exists."""
 
-        if len(message.get("text_tokens")) <= self.max_token:
-            if message.get(TEXT).strip() in self.intent_keyword_map:
-                intent_name = self.intent_keyword_map[message.get(TEXT).strip()]
-                intent = {"name": intent_name, "confidence": 1.0}
-                message.set(INTENT, intent, add_to_output=True)
+        for message in messages:
+            if len(message.get("text_tokens")) <= self.max_token:
+                if message.get(TEXT).strip() in self.intent_keyword_map:
+                    intent_name = self.intent_keyword_map[message.get(TEXT).strip()]
+                    intent = {"name": intent_name, "confidence": 1.0}
+                    message.set(INTENT, intent, add_to_output=True)
 
-    def persist(self, file_name: Text, model_dir: Text) -> Dict[Text, Any]:
+        return  messages
+
+    def persist(self) -> None:
         """Persist this model into the passed directory.
         Return the metadata necessary to load the model again.
         """
-
-        file_name = file_name + ".json"
-        keyword_file = os.path.join(model_dir, file_name)
-        utils.write_json_to_file(keyword_file, self.intent_keyword_map)
-
-        return {"file": file_name}
+        with self._model_storage.write_to(self._resource) as model_dir:
+            file_name = f"{self.__class__.__name__}.json"
+            keyword_file = model_dir / file_name
+            rasa.shared.utils.io.dump_obj_as_json_to_file(
+                keyword_file, self.intent_keyword_map
+            )
 
     @classmethod
     def load(
             cls,
-            meta: Dict[Text, Any],
-            model_dir: Text,
-            model_metadata: Metadata = None,
-            cached_component: Optional["StringMatchClassifier"] = None,
+            config: Dict[Text, Any],
+            model_storage: ModelStorage,
+            resource: Resource,
+            execution_context: ExecutionContext,
             **kwargs: Any,
-    ) -> "StringMatchClassifier":
+    ) -> StringMatchClassifier:
         """Loads trained component (see parent class for full docstring)."""
-        if meta.get("file"):
-            file_name = meta.get("file")
-            keyword_file = os.path.join(model_dir, file_name)
-            if os.path.exists(keyword_file):
+        try:
+            with model_storage.read_from(resource) as model_dir:
+                keyword_file = model_dir / f"{cls.__name__}.json"
                 intent_keyword_map = rasa.shared.utils.io.read_json_file(keyword_file)
-            else:
-                rasa.shared.utils.io.raise_warning(
-                    f"Failed to load key word file for `StringMatchClassifier`, "
-                    f"maybe {keyword_file} does not exist?"
-                )
-                intent_keyword_map = None
-            return cls(meta, intent_keyword_map)
-        else:
-            raise Exception(
-                f"Failed to load string match intent classifier model. "
-                f"Path {os.path.abspath(meta.get('file'))} doesn't exist."
+        except ValueError:
+            logger.warning(
+                f"Failed to load {cls.__class__.__name__} from model storage. Resource "
+                f"'{resource.name}' doesn't exist."
             )
+            intent_keyword_map = None
+
+        return cls(
+            config, model_storage, resource, execution_context, intent_keyword_map
+        )
