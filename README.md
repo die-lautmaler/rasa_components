@@ -1,6 +1,7 @@
 # lautmaler rasa components
 A package for some rasa pipeline component implementations to be shared among projects  
 The main branch targets rasa 2.8.x
+there is a rasa 3 branch
 
 # StringMatchIntentClassifier
 A simple string matching intent classifier that can take its own set of training data.
