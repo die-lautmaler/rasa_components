@@ -21,6 +21,7 @@ import rasa.shared.utils.io
 
 logger = logging.getLogger(__name__)
 
+
 @DefaultV1Recipe.register(
     DefaultV1Recipe.ComponentType.INTENT_CLASSIFIER, is_trainable=True
 )
@@ -153,7 +154,7 @@ class StringMatchClassifier(GraphComponent, IntentClassifier):
                     intent = {"name": intent_name, "confidence": 1.0}
                     message.set(INTENT, intent, add_to_output=True)
 
-        return  messages
+        return messages
 
     def persist(self) -> None:
         """Persist this model into the passed directory.
