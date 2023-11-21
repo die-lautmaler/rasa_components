@@ -4,18 +4,18 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='lautcomponents',
-    version='1.0.3',
-    author='lautmalers',
-    author_email='info@die-lautmaler.com',
-    description='lautmaler in house rasa components',
+    name="lautcomponents",
+    version="1.0.3",
+    author="lautmalers",
+    author_email="info@die-lautmaler.com",
+    description="lautmaler in house rasa components",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://github.com/die-lautmaler/rasa_components',
-    project_urls = {
+    url="https://github.com/die-lautmaler/rasa_components",
+    project_urls={
         "Bug Tracker": "https://github.com/die-lautmaler/rasa_components/issues"
     },
     # license='MIT',
-    packages=['lautcomponents'],
-    install_requires=['rasa>=3.0.0'],
+    packages=["lautcomponents"],
+    install_requires=["rasa>=3.6.10", "sentencepiece>=0.1.99"],
 )
