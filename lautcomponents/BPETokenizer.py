@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 @DefaultV1Recipe.register(
-    [DefaultV1Recipe.ComponentType.MESSAGE_TOKENIZER],
+    DefaultV1Recipe.ComponentType.MESSAGE_TOKENIZER,
     is_trainable=True,
 )
 class BPETokenizer(Tokenizer, GraphComponent):
