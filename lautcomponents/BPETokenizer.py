@@ -23,7 +23,7 @@ from tokenizers.trainers import BpeTrainer
 
 logger = logging.getLogger(__name__)
 
-# TODO: Correctly register your component with its type
+
 @DefaultV1Recipe.register(
     [DefaultV1Recipe.ComponentType.MESSAGE_TOKENIZER],
     is_trainable=True,
@@ -177,8 +177,12 @@ class BPETokenizer(Tokenizer, GraphComponent):
         }
 
     def msg_text_generator(self, training_data: TrainingData) -> str:
+        x = 0
         for example in training_data.training_examples:
+            x += 1
             yield example.get(TEXT)
+
+        logger.debug(f"Total number of examples: {x}")
 
     def _train_tokenizer(self, training_data: TrainingData) -> HuggingfaceTokenizer:
         """
