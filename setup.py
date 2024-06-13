@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="lautcomponents",
-    version="1.1.0",
+    version="1.1.1",
     author="lautmalers",
     author_email="info@die-lautmaler.com",
     description="lautmaler in house rasa components",
@@ -17,5 +17,5 @@ setuptools.setup(
     },
     # license='MIT',
     packages=["lautcomponents"],
-    install_requires=["rasa>=3.0.0", "black>=22.0.0", "tokenizers", "tiktoken>=0.7.0", "websockets==10.0"],
+    install_requires=["rasa>=3.0.0", "black>=22.0.0", "tokenizers", "websockets==10.0"],
 )
