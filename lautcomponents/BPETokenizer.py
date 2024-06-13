@@ -18,7 +18,7 @@ from rasa.shared.nlu.training_data.message import Message
 from rasa.shared.nlu.training_data.training_data import TrainingData
 from rasa.shared.nlu.constants import TEXT
 
-from rasa.nlu.constants import MESSAGE_ATTRIBUTES, TOKENS_NAMES
+from rasa.nlu.constants import TOKENS_NAMES
 from rasa.nlu.tokenizers.tokenizer import Token
 
 logger = logging.getLogger(__name__)

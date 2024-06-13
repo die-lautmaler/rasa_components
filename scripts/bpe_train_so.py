@@ -13,7 +13,7 @@ from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
 from tokenizers.pre_tokenizers import Whitespace
 
-from typing import Dict, Text, Any, List, Optional, Generator
+from typing import List, Generator
 
 logging.root.setLevel(0)
 logger = logging.getLogger(__name__)
