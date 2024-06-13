@@ -1,15 +1,16 @@
 import logging
 import tempfile
 from pathlib import Path
-from typing import Dict, Text
+from typing import Dict, Text, Union
 
-from rasa.engine.graph import GraphComponent, ExecutionContext
+from rasa.engine.graph import ExecutionContext, GraphModelConfiguration
 from rasa.engine.storage.resource import Resource
 from rasa.engine.storage.storage import ModelStorage
+from rasa.shared.core.domain import Domain
 from rasa.shared.nlu.training_data.message import Message
 from rasa.shared.nlu.training_data.training_data import TrainingData
 from rasa.shared.nlu.constants import TEXT
-from rasa.nlu.constants import MESSAGE_ATTRIBUTES, TOKENS_NAMES
+from rasa.nlu.constants import TOKENS_NAMES
 from lautcomponents.BPETokenizer import BPETokenizer
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def create_temporary_model_storage() -> ModelStorage:
     try:
-        temp_dir = tempfile.TemporaryDirectory(dir='bpeTesttmp')
+        temp_dir = tempfile.TemporaryDirectory(dir="bpeTesttmp")
         model_storage = ModelStorage.create(Path(temp_dir.name))
         return model_storage
     except Exception as e:
@@ -30,7 +31,7 @@ class MockModelStorage(ModelStorage):
     def __init__(self):
         self.storage = {}
 
-    def create(self, resource: Resource) -> 'ModelStorage':
+    def create(self, resource: Resource) -> "ModelStorage":
         return self
 
     def write_to(self, resource: Resource):
@@ -68,16 +69,24 @@ class MockModelStorage(ModelStorage):
 
         return _MockContextManager()
 
-    @staticmethod
-    def from_model_archive(archive_path: Text, resource: Resource) -> 'ModelStorage':
+    @classmethod
+    def from_model_archive(
+        cls, storage_path: Path, model_archive_path: Union[Text, Path]
+    ) -> "ModelStorage":
         return MockModelStorage()
 
-    @staticmethod
-    def metadata_from_archive(archive_path: Text) -> Dict:
+    @classmethod
+    def metadata_from_archive(cls, model_archive_path: Union[Text, Path]) -> Dict:
         return {}
 
-    def create_model_package(self, resource: Resource, model_archive_path: Text) -> None:
+    def create_model_package(
+        self,
+        model_archive_path: Union[Text, Path],
+        model_configuration: GraphModelConfiguration,
+        domain: Domain,
+    ) -> None:
         pass
+
 
 class MockResource(Resource):
     def __init__(self, name: str):
