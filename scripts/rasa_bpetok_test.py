@@ -99,17 +99,6 @@ class MockExecutionContext(ExecutionContext):
         self.node_name = "test_node"
 
 
-class MockResource(Resource):
-    def __init__(self, name: str):
-        self.name = name
-
-
-class MockExecutionContext(ExecutionContext):
-    def __init__(self, is_finetuning: bool):
-        self.is_finetuning = is_finetuning
-        self.node_name = "test_node"
-
-
 # Create some training data
 messages = [
     Message(data={TEXT: "Hello world!"}),
