@@ -3,6 +3,7 @@ import logging
 
 from tokenizers import Tokenizer as HuggingfaceTokenizer
 from tokenizers.models import BPE
+from tokenizers.trainers import BpeTrainer
 from tokenizers.pre_tokenizers import Whitespace
 
 from typing import Dict, Text, Any, List, Optional
@@ -19,7 +20,6 @@ from rasa.shared.nlu.constants import TEXT
 
 from rasa.nlu.constants import MESSAGE_ATTRIBUTES, TOKENS_NAMES
 from rasa.nlu.tokenizers.tokenizer import Token
-from tokenizers.trainers import BpeTrainer
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,19 @@ class BPETokenizer(Tokenizer, GraphComponent):
         resource: Resource,
         execution_context: ExecutionContext,
     ) -> GraphComponent:  # should be BPeTokenizer
+        if config.get("model", None):
+            logger.info(f"Loading BPE Tokenizer model from: {config.get('model')}.")
+            try:
+                pretrained = HuggingfaceTokenizer.from_file(config.get("model"))
+                bpe_tok = cls(config, model_storage, resource, execution_context)
+                bpe_tok.bpe_tokenizer = pretrained
+                return bpe_tok
+            except (FileNotFoundError, IOError, ValueError, FileIOException):
+                logger.debug(
+                    f"Failed to load BPE Tokenizer model. "
+                    f"Resource '{resource}' could not be found."
+                )
+
         return cls(config, model_storage, resource, execution_context)
 
     @classmethod
@@ -98,8 +111,11 @@ class BPETokenizer(Tokenizer, GraphComponent):
 
     def train(self, training_data: TrainingData) -> Resource:
         """Train the BPE tokenizer using the provided training data."""
-        logger.info("Training BPE tokenizer.")
-        self.bpe_tokenizer = self._train_tokenizer(training_data)
+        if self._config.get("model", None) and self.bpe_tokenizer:
+            logger.info("using pretrained BPE tokenizer. Skip training.")
+        else:
+            logger.info("Training BPE tokenizer.")
+            self.bpe_tokenizer = self._train_tokenizer(training_data)
 
         logger.info(
             f"BPETokenizer final vocab size of: {self.bpe_tokenizer.get_vocab_size()}"
@@ -148,7 +164,7 @@ class BPETokenizer(Tokenizer, GraphComponent):
                     start=start_idx,
                     end=end_idx,
                     data={"id": encoded.ids[idx]},
-                    lemma=None,
+                    lemma=token,
                 )
             )
 
@@ -166,6 +182,8 @@ class BPETokenizer(Tokenizer, GraphComponent):
             "vocab_size": 5000,
             # minimum frequency of a token to be included in the vocab
             "min_frequency": 0,
+            # path to a trained BPE model
+            "model": None,
             # Flag to check whether to split intents
             "intent_tokenization_flag": False,
             # Symbol on which intent should be split
