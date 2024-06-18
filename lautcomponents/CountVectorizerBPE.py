@@ -88,7 +88,7 @@ class CountVectorsFeaturizerBPE(CountVectorsFeaturizer):
                 os.path.dirname(__file__), "sipgate_bpe_10k_100freq.json"
             )
 
-        logger.info(f"CVF_BPE:: loading bpe model: {cls.tokenizer_fname}")
+        logger.info(f"CVF_BPE:: using bpe model: {bpe_model_path}")
         try:
             tok = HuggingfaceTokenizer.from_file(bpe_model_path)
         except (ValueError, FileNotFoundError, FileIOException) as e:
