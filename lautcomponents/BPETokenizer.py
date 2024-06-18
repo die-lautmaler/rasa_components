@@ -147,7 +147,7 @@ class BPETokenizer(Tokenizer, GraphComponent):
         text = message.get(attribute)
         if text is None:
             logger.warning(
-                f"Message contains no text attribute. Skipping tokenization."
+                f"Message contains no {text} attribute. Skipping tokenization."
             )
             return []
 

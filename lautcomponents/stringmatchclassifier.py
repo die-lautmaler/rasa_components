@@ -44,12 +44,12 @@ class StringMatchClassifier(GraphComponent, IntentClassifier):
         return {"case_sensitive": False, "max_token": 2, "train_data": None}
 
     def __init__(
-            self,
-            config: Dict[Text, Any],
-            model_storage: ModelStorage,
-            resource: Resource,
-            execution_context: ExecutionContext,
-            intent_keyword_map: Optional[Dict] = None,
+        self,
+        config: Dict[Text, Any],
+        model_storage: ModelStorage,
+        resource: Resource,
+        execution_context: ExecutionContext,
+        intent_keyword_map: Optional[Dict] = None,
     ) -> None:
 
         # super(StringMatchClassifier, self).__init__(config)
@@ -65,11 +65,11 @@ class StringMatchClassifier(GraphComponent, IntentClassifier):
 
     @classmethod
     def create(
-            cls,
-            config: Dict[Text, Any],
-            model_storage: ModelStorage,
-            resource: Resource,
-            execution_context: ExecutionContext,
+        cls,
+        config: Dict[Text, Any],
+        model_storage: ModelStorage,
+        resource: Resource,
+        execution_context: ExecutionContext,
     ) -> StringMatchClassifier:
         """Creates a new untrained component (see parent class for full docstring)."""
         return cls(config, model_storage, resource, execution_context)
@@ -95,7 +95,10 @@ class StringMatchClassifier(GraphComponent, IntentClassifier):
             intent = ex.get(INTENT)
             # print(ex.get("text_spacy_doc"))
 
-            if text in self.intent_keyword_map.keys() and intent != self.intent_keyword_map[text]:
+            if (
+                text in self.intent_keyword_map.keys()
+                and intent != self.intent_keyword_map[text]
+            ):
                 duplicate_examples.add(text)
                 rasa.shared.utils.io.raise_warning(
                     f"text '{text}' is a trigger for intent "
@@ -116,7 +119,7 @@ class StringMatchClassifier(GraphComponent, IntentClassifier):
             )
 
     def _compute_intent_map(self, train_data: TrainingData):
-        logger.info('mapping utterances with max {} tokens'.format(self.max_token))
+        logger.info("mapping utterances with max {} tokens".format(self.max_token))
 
         duplicate_examples = set()
         for ex in train_data.intent_examples:
@@ -124,7 +127,10 @@ class StringMatchClassifier(GraphComponent, IntentClassifier):
             intent = ex.get(INTENT)
 
             if len(ex.get("text_tokens")) <= self.max_token:
-                if text in self.intent_keyword_map.keys() and intent != self.intent_keyword_map[text]:
+                if (
+                    text in self.intent_keyword_map.keys()
+                    and intent != self.intent_keyword_map[text]
+                ):
                     duplicate_examples.add(text)
                     rasa.shared.utils.io.raise_warning(
                         f"text '{text}' is a trigger for intent "
@@ -169,12 +175,12 @@ class StringMatchClassifier(GraphComponent, IntentClassifier):
 
     @classmethod
     def load(
-            cls,
-            config: Dict[Text, Any],
-            model_storage: ModelStorage,
-            resource: Resource,
-            execution_context: ExecutionContext,
-            **kwargs: Any,
+        cls,
+        config: Dict[Text, Any],
+        model_storage: ModelStorage,
+        resource: Resource,
+        execution_context: ExecutionContext,
+        **kwargs: Any,
     ) -> StringMatchClassifier:
         """Loads trained component (see parent class for full docstring)."""
         try:
