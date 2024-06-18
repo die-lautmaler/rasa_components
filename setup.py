@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="lautcomponents",
-    version="1.1.1",
+    version="1.2.0",
     author="lautmalers",
     author_email="info@die-lautmaler.com",
     description="lautmaler in house rasa components",
