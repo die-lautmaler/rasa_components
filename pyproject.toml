@@ -13,7 +13,7 @@ tokenizers = "^0.15.0"
 websockets = "10.0.0"
 
 [tool.poetry.group.dev.dependencies]
-black = { version = ">=23.3.0", extras = ["d"] }
+black = { version = ">=22.0.0", extras = ["d"] }
 
 [build-system]
 requires = ["poetry-core"]
